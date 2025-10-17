@@ -51,18 +51,26 @@ void build_project_path(char* buffer,size_t sz, char* projectname,char* subfolde
     snprintf(buffer,sz,"%s\\%s\\%s",MAINFOLDER,projectname,subfolder);
 }
 
-void genjsFILES(const char* projectname,const char* apppath,const char* indexpath,const char* projectpathj){
+void genjsFILES(const char* projectname,const char* apppath,const char* indexpath,const char* projectpathj,const char* projectenv){
    
     FILE* p = fopen(apppath,"w");
     FILE* i = fopen(indexpath,"w");
     FILE* w = fopen(projectpathj, "w");
+    FILE* env = fopen(projectenv,"w");
     if (!p) {
-    perror("fopen");
+    perror("ERROR: cannot open file or file doesnt exist");
     return;
     }
- 
+    if (!i) {
+        perror("ERROR: cannot open file or file doesnt exist");
+        return;
+    }
     if (!w) {
-        perror("fopen (package.json)");
+        perror("ERROR: cannot open file or file doesnt exist");
+        return;
+    }
+      if (!env) {
+        perror("ERROR: cannot open file or file doesnt exist");
         return;
     }
 
@@ -91,6 +99,7 @@ void genjsFILES(const char* projectname,const char* apppath,const char* indexpat
     fclose(w);
     fclose(p);
     fclose(i);
+    fclose(env);
 
 }
 
@@ -125,9 +134,11 @@ int main(int argc,char** argv){
     char projectpath[128];
     char projectindex[128];
     char projectpjson[128];
+    char projectenv[128];
     char* projectname = argv[1];
     build_project_path(projectpath,sizeof(projectpath),projectname,"\\");
     build_project_path(projectapp,sizeof(projectapp),projectname,"\\app.js");
+    build_project_path(projectenv,sizeof(projectenv),projectname,"\\.env");
      build_project_path(projectpjson,sizeof(projectpjson),projectname,"\\package.json");
     build_project_path(public,sizeof(public),projectname,"\\public");
     build_project_path(projectindex,sizeof(projectindex),projectname,"\\public\\index.html");
@@ -135,7 +146,7 @@ int main(int argc,char** argv){
     build_project_path(assets,sizeof(assets),projectname,"\\assets");
     build_project_path(middleware,sizeof(middleware),projectname,"\\middleware");
     build_project_path(controller,sizeof(controller),projectname,"\\controller");
-    printf("|---> creating project %s folders. \n",projectname);
+    printf("|------> Generating %s Structure.\n",projectname);
     if (mkdirr(public)){
         printf("|---> %s created \n",public);
     }
@@ -153,8 +164,7 @@ int main(int argc,char** argv){
     }
    
     
-    genjsFILES(projectname,projectapp,projectindex,projectpjson);
-    
+    genjsFILES(projectname,projectapp,projectindex,projectpjson,projectenv);
     idependency(projectpath);
 
 
