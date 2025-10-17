@@ -77,12 +77,13 @@ void genjsFILES(const char* projectname,const char* apppath,const char* indexpat
     fprintf(w, "  \"dependencies\": {}\n");
     fprintf(w, "}\n");
 
-  
+    fprintf(p,"require('dotenv').config();");
     fprintf(p,"const express = require('express'); \n");
     fprintf(p,"const app = express(); \n");
     fprintf(p,"const PORT = process.env.PORT || 3000 ; \n");
     fprintf(p,"const cors = require('cors'); \n");
     fprintf(p,"app.use(express.json()); \n");
+    fprintf(p,"app.use(express.urlencoded({ extended: true }));");
     fprintf(p,"app.use(cors()); \n");
     fprintf(p,"app.get('/', (req,res)=>{ return res.send('get//working');}); \n");
     fprintf(p,"app.listen(PORT, ()=>{ console.log(`sv: http://localhost:${PORT}`)}); \n");
@@ -98,7 +99,7 @@ void idependency(const char* path){
     if (system("npm -v >nul 2>&1") != 0) {
     fprintf(stderr, "npm is not installed or not in PATH.\n");
     }
-    snprintf(buffer,sizeof(buffer)," cd %s && npm install express cors axios dotenv",path);
+    snprintf(buffer,sizeof(buffer)," cd %s && npm install express cors axios dotenv path jsonwebtoken",path);
     int res = system(buffer);
     if (res == 0){
         printf("|---> npm dependencies installed successfully.\n");
