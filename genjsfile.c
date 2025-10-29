@@ -3,13 +3,31 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <time.h>
 
 #ifdef _WIN32
+#define PATH_SEP '\\'
 #include <direct.h>
+#define MKDIR(dir) _mkdir(dir) 
 #else
+#define PATH_SEP '/'
 #include <unistd.h>
 #define MKDIR(dir) mkdir(dir, 0755)
 #endif
+
+
+#define RESET   "\033[0m"
+#define RED     "\033[31m"
+#define GREEN   "\033[32m"
+#define YELLOW  "\033[33m"
+#define BLUE    "\033[34m"
+#define MAGENTA "\033[35m"
+#define CYAN    "\033[36m"
+#define WHITE   "\033[37m"
+#define BOLD    "\033[1m"
+#define DIM     "\033[2m"
+
+
 
 #define MAINFOLDER "c:\\zeus\\"
 
@@ -26,16 +44,17 @@ bool mkdirr(const char* path){
 
     for (char* p = buffer +1; *p ; p++){
         if (*p == '/' || *p == '\\'){
+            char pp = *p;
             *p = '\0';
-            if (mkdir(buffer) != 0 && errno != EEXIST ){
+            if (MKDIR(buffer) != 0 && errno != EEXIST ){
                 perror("mkdir");
                 return false;
             }
-            *p= '\\';
+            *p= pp;
         }
     }
 
-    if (mkdir(buffer) != 0 && errno != EEXIST){
+    if (MKDIR(buffer) != 0 && errno != EEXIST){
         perror("mkdir");
         return false;
     }
@@ -44,9 +63,16 @@ bool mkdirr(const char* path){
 
 }
 
-
-void build_project_path(char* buffer,size_t sz, char* projectname,char* subfolder){
+// deprecated
+/* void build_project_path(char* buffer,size_t sz, char* projectname,char* subfolder){
     snprintf(buffer,sz,"%s\\%s\\%s",MAINFOLDER,projectname,subfolder);
+} */
+
+void build_project_path(char* buffer, size_t sz, const char* projectname, const char* subfolder) {
+    if (subfolder && *subfolder)
+        snprintf(buffer, sz, "%s%c%s%c%s", MAINFOLDER, PATH_SEP, projectname, PATH_SEP, subfolder);
+    else
+        snprintf(buffer, sz, "%s%c%s", MAINFOLDER, PATH_SEP, projectname);
 }
 
 
@@ -87,49 +113,10 @@ void genjsFILES(const char* projectname,
 }
 
 
-/* void genjsFILES(const char* projectname,const char* apppath,const char* indexpath,const char* projectpathj,const char* projectenv){
-   
-    FILE* p = fopen(apppath,"w");
-    FILE* i = fopen(indexpath,"w");
-    FILE* w = fopen(projectpathj, "w");
-    FILE* env = fopen(projectenv,"w");
-    if (!p || !i || !w || !env) {
-    perror("Cannot open one of the files");
-    if (p) fclose(p);
-    if (i) fclose(i);
-    if (w) fclose(w);
-    if (env) fclose(env);
-    return;
-   }
 
-    fprintf(w, "{\n");
-    fprintf(w, "  \"name\": \"%s\",\n", projectname);
-    fprintf(w, "  \"version\": \"1.0.0\",\n");
-    fprintf(w, "  \"description\": \"Auto-generated Express app\",\n");
-    fprintf(w, "  \"main\": \"app.js\",\n");
-    fprintf(w, "  \"scripts\": {\n");
-    fprintf(w, "    \"start\": \"node app.js\"\n");
-    fprintf(w, "  },\n");
-    fprintf(w, "  \"dependencies\": {}\n");
-    fprintf(w, "}\n");
-
-    fprintf(p,"require('dotenv').config();");
-    fprintf(p,"const express = require('express'); \n");
-    fprintf(p,"const app = express(); \n");
-    fprintf(p,"const PORT = process.env.PORT || 3000 ; \n");
-    fprintf(p,"const cors = require('cors'); \n");
-    fprintf(p,"app.use(express.json()); \n");
-    fprintf(p,"app.use(express.urlencoded({ extended: true }));");
-    fprintf(p,"app.use(cors()); \n");
-    fprintf(p,"app.get('/', (req,res)=>{ return res.send('get//working');}); \n");
-    fprintf(p,"app.listen(PORT, ()=>{ console.log(`sv: http://localhost:${PORT}`)}); \n");
-    
-    fclose(w);
-    fclose(p);
-    fclose(i);
-    fclose(env);
-
-} */
+// not safe using system call 
+// but using the proc in windows 
+// is such huge pain 
 
 void idependency(const char* path){
     char buffer[512];
@@ -147,62 +134,58 @@ void idependency(const char* path){
 
 }
 
+// keep track of the time 
+ void getCurrentTimestamps(char* buffer,size_t size){
+    time_t now = time(NULL);
+    struct tm* info = gmtime(&now);
+    strftime(buffer,size,"[%Y-%m-%d][%H:%M:%S]",info);
+}
+
+
 int main(int argc,char** argv){
-    
     if (argc < 2 ){
-        printf("project name should be passed by the cmd.");
+        printf(RED "Error: " RESET "Project name should be passed by the cmd.\n");
         return -1;
     }
-    char public[512];
-    char router[512];
-    char assets[512];
-    char middleware[512];
-    char controller[512];
-    char projectapp[512];
-    char projectpath[512];
-    char projectindex[512];
-    char projectpjson[512];
-    char projectenv[512];
-    char* projectname = argv[1];
-    build_project_path(projectpath,sizeof(projectpath),projectname,"\\");
-    build_project_path(projectapp,sizeof(projectapp),projectname,"\\app.js");
-    build_project_path(projectenv,sizeof(projectenv),projectname,"\\.env");
-    build_project_path(projectpjson,sizeof(projectpjson),projectname,"\\package.json");
-    build_project_path(public,sizeof(public),projectname,"\\public");
-    build_project_path(projectindex,sizeof(projectindex),projectname,"\\public\\index.html");
-    build_project_path(router,sizeof(router),projectname,"\\router");
-    build_project_path(assets,sizeof(assets),projectname,"\\assets");
-    build_project_path(middleware,sizeof(middleware),projectname,"\\middleware");
-    build_project_path(controller,sizeof(controller),projectname,"\\controller");
-    printf("|------> Generating %s Structure.\n",projectname);
-    if (mkdirr(public)){
-        printf("|---> %s created \n",public);
-    }
-     if (mkdirr(router)){
-        printf("|---> %s created \n",router);
-    }
-     if (mkdirr(assets)){
-        printf("|---> %s created \n",assets);
-    }
-     if (mkdirr(controller)){
-        printf("|---> %s created \n",controller);
-    }
-     if (mkdirr(middleware)){
-        printf("|---> %s created \n",middleware);
-    }
-   
+
     
-    genjsFILES(projectname,projectapp,projectindex,projectpjson,projectenv);
-    idependency(projectpath);
+    system("");
 
+    char public[512], router[512], assets[512], middleware[512], controller[512];
+    char projectapp[512], projectpjson[512], projectenv[512], projectindex[512];
+    char* projectname = argv[1];
 
+    build_project_path(public, sizeof(public), projectname, "public");
+    build_project_path(router, sizeof(router), projectname, "router");
+    build_project_path(assets, sizeof(assets), projectname, "assets");
+    build_project_path(middleware, sizeof(middleware), projectname, "middleware");
+    build_project_path(controller, sizeof(controller), projectname, "controller");
+    build_project_path(projectapp, sizeof(projectapp), projectname, "app.js");
+    build_project_path(projectpjson, sizeof(projectpjson), projectname, "package.json");
+    build_project_path(projectenv, sizeof(projectenv), projectname, ".env");
+    build_project_path(projectindex, sizeof(projectindex), projectname, "public/index.html");
 
+    printf(BOLD CYAN "|------> Generating " RESET GREEN "%s" RESET CYAN " Structure.\n" RESET, projectname);
 
+    if (mkdirr(public))
+        printf(GREEN " |---> %s created\n" RESET, public);
+    if (mkdirr(router))
+        printf(GREEN " |---> %s created\n" RESET, router);
+    if (mkdirr(assets))
+        printf(GREEN " |---> %s created\n" RESET, assets);
+    if (mkdirr(controller))
+        printf(GREEN " |---> %s created\n" RESET, controller);
+    if (mkdirr(middleware))
+        printf(GREEN " |---> %s created\n" RESET, middleware);
 
+    printf(YELLOW " |---> Generating base files...\n" RESET);
+    genjsFILES(projectname, projectapp, projectindex, projectpjson, projectenv);
 
+    printf(YELLOW " |---> Installing dependencies (this may take a while)...\n" RESET);
+    idependency(projectname);
 
-
-
+    printf(BOLD GREEN "\n Project '%s' successfully scaffolded!\n" RESET, projectname);
+    printf(DIM "   Location: %s%c%s\n\n" RESET, MAINFOLDER, PATH_SEP, projectname);
 
     return 0;
 }
